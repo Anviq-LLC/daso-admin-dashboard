@@ -4,6 +4,7 @@ import { checkSettings, loadSettings, saveSettings } from './settings.ts';
 import { reconcileAll, refreshChanged, refreshMonth } from './ingest.ts';
 import { bucketOf, BUCKETS, DEFAULT_MAPPING, suggest, summarize, type Line } from '../calc/bwa.ts';
 import { toCsv } from './export.ts';
+import { sha256Hex } from '../api/guard.ts';
 
 const SECURITY = {
   'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff', 'Referrer-Policy': 'no-referrer',
@@ -151,6 +152,24 @@ async function route(request: Request, env: Env, url: URL): Promise<Response> {
       .bind(text(b.email, 200).toLowerCase(), b.role, opt(b.name, 120), b.sensitive ? 1 : 0).run();
     await log(env, who, 'role', `${b.email} ${b.role}`);
     return reply({ ok: true });
+  }
+
+  // ---- keys for the read-only data API (shown once, only the hash is stored)
+  if (p === '/api/api-keys') {
+    need(can.rules(who));
+    const apiUrl = url.origin.replace('//daso-admin-dashboard.', '//daso-data-api.');
+    if (method === 'GET') return reply({ url: apiUrl, spec: apiUrl + '/openapi.json', keys: (await env.DB.prepare('SELECT id, name, created_by, created_at, revoked FROM api_key ORDER BY created_at DESC').all()).results });
+    if (method === 'DELETE') {
+      await env.DB.prepare('UPDATE api_key SET revoked = 1 WHERE id = ?').bind(text(q.get('id'), 80)).run();
+      await log(env, who, 'api-key-revoke', q.get('id') || '');
+      return reply({ ok: true });
+    }
+    const b = await body();
+    const key = 'daso_' + btoa(String.fromCharCode(...crypto.getRandomValues(new Uint8Array(24)))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+    const id = crypto.randomUUID();
+    await env.DB.prepare('INSERT INTO api_key (id, name, hash, created_by, created_at, revoked) VALUES (?,?,?,?,?,0)').bind(id, text(b.name, 80), await sha256Hex(key), who.email, new Date().toISOString()).run();
+    await log(env, who, 'api-key-create', String(b.name));
+    return reply({ id, key, note: 'Der Schlüssel wird nur jetzt angezeigt.' }, 201);
   }
 
   // ---- BWA / SuSa

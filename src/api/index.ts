@@ -34,9 +34,12 @@ export default {
   async fetch(request: Request, env: ApiEnv): Promise<Response> {
     const url = new URL(request.url);
     if (url.pathname === '/openapi.json') return json(spec(url.origin));
-    if (!env.API_KEY_HASH) return json({ error: 'API nicht eingerichtet.' }, 503);
     const key = (request.headers.get('authorization') || '').replace(/^Bearer\s+/i, '');
-    if (!key || !safeEqual(await sha256Hex(key), env.API_KEY_HASH)) return json({ error: 'Nicht autorisiert.' }, 401);
+    if (!key) return json({ error: 'Nicht autorisiert.' }, 401);
+    // keys are created and revoked in the dashboard (api_key table); the optional secret stays as a fallback
+    const hash = await sha256Hex(key);
+    const known = (env.API_KEY_HASH && safeEqual(hash, env.API_KEY_HASH)) || !!(await env.DB.prepare('SELECT 1 AS n FROM api_key WHERE hash = ? AND revoked = 0').bind(hash).first());
+    if (!known) return json({ error: 'Nicht autorisiert.' }, 401);
     const db = readOnly(env.DB);
     const full = { DB: db } as unknown as Env;
     try {

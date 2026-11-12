@@ -7,6 +7,10 @@
   "preview_urls": false,
   "observability": { "enabled": true },
   "assets": { "directory": "dist", "binding": "ASSETS", "not_found_handling": "single-page-application", "run_worker_first": true },
+  "vars": {
+    "CF_ACCESS_TEAM_DOMAIN": "dasoluft.cloudflareaccess.com",
+    "CF_ACCESS_AUD": "a5b7cb0ef6d34e2cafeb6feafce5113891946788aa1b1b861f0b2826143a6d16"
+  },
   "triggers": { "crons": ["*/15 * * * *"] },
   "r2_buckets": [{ "binding": "BUCKET", "bucket_name": "daso-admin-dashboard-files" }],
   "d1_databases": [

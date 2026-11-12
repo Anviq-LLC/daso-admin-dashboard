@@ -11,10 +11,12 @@ export function Settings({ me, month }: { me: Me; month: string }) {
   const [aliases, setAliases] = useState<any[]>([]);
   const [audit, setAudit] = useState<any[]>([]);
   const [msg, setMsg] = useState('');
+  const [keys, setKeys] = useState<{ url: string; spec: string; keys: any[] } | null>(null);
+  const [fresh, setFresh] = useState('');
   const load = () => {
     api<S>('/api/settings').then(setS).catch((e) => setMsg(e.message));
     api('/api/aliases').then(setAliases).catch(() => {});
-    if (gf) { api('/api/roles').then(setRoles).catch(() => {}); api('/api/audit').then(setAudit).catch(() => {}); }
+    if (gf) { api('/api/roles').then(setRoles).catch(() => {}); api('/api/audit').then(setAudit).catch(() => {}); api('/api/api-keys').then(setKeys).catch(() => {}); }
   };
   useEffect(load, []);
   if (!s) return <div className="card">{msg || 'Lade…'}</div>;
@@ -32,6 +34,10 @@ export function Settings({ me, month }: { me: Me; month: string }) {
   const addRole = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault(); const f = Object.fromEntries(new FormData(e.currentTarget)) as Record<string, string>;
     try { await api('/api/roles', { method: 'POST', json: { email: f.email, role: f.role, name: f.name, sensitive: f.sensitive === 'on' } }); (e.target as HTMLFormElement).reset(); load(); } catch (x) { setMsg((x as Error).message); }
+  };
+  const newKey = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault(); const f = Object.fromEntries(new FormData(e.currentTarget)) as Record<string, string>;
+    try { const r = await api<{ key: string }>('/api/api-keys', { method: 'POST', json: { name: f.name } }); setFresh(r.key); (e.target as HTMLFormElement).reset(); load(); } catch (x) { setMsg((x as Error).message); }
   };
   const addAlias = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault(); const f = Object.fromEntries(new FormData(e.currentTarget)) as Record<string, string>;
@@ -79,6 +85,15 @@ export function Settings({ me, month }: { me: Me; month: string }) {
         <section className="card">
           <h2>Ereignisprotokoll</h2>
           <div className="scroll"><table><thead><tr><th>Zeit</th><th>Wer</th><th>Aktion</th><th>Detail</th></tr></thead><tbody>{audit.map((a, i) => <tr key={i}><td>{new Date(a.at).toLocaleString('de-DE')}</td><td>{a.actor}</td><td>{a.action}</td><td style={{ whiteSpace: 'normal', textAlign: 'left' }}>{a.detail}</td></tr>)}</tbody></table></div>
+        </section>
+        <section className="card">
+          <h2>Daten-API (nur lesend)</h2>
+          {keys && <p>Adresse: <code>{keys.url}</code> · Schnittstellenbeschreibung für ein Custom GPT: <a href={keys.spec} target="_blank" rel="noreferrer">{keys.spec}</a></p>}
+          {fresh && <div className="warn"><strong>Neuer Schlüssel (nur jetzt sichtbar):</strong> <code>{fresh}</code><br /><button className="btn" onClick={() => navigator.clipboard.writeText(fresh)}>Kopieren</button> <button className="btn" onClick={() => setFresh('')}>Ausblenden</button></div>}
+          <table><thead><tr><th>Name</th><th>Erstellt</th><th>Von</th><th>Status</th><th></th></tr></thead><tbody>
+            {keys?.keys.map((k) => <tr key={k.id}><td>{k.name}</td><td>{new Date(k.created_at).toLocaleString('de-DE')}</td><td>{k.created_by}</td><td>{k.revoked ? 'widerrufen' : 'aktiv'}</td><td>{!k.revoked && <button className="btn" onClick={() => api(`/api/api-keys?id=${k.id}`, { method: 'DELETE' }).then(load)}>Widerrufen</button>}</td></tr>)}</tbody></table>
+          <form className="row" onSubmit={newKey} style={{ marginTop: 8 }}><label>Name (z. B. „David ChatGPT“)<input name="name" required /></label><button className="btn primary">Schlüssel erzeugen</button></form>
+          <small className="muted">Custom GPT: Aktionen, Schema von der obigen Adresse importieren, Authentifizierung „API-Schlüssel“, Typ „Bearer“. Die API liefert nur Umsatz-, Sub- und Projektzahlen, keine Löhne oder Personalkosten, und ändert nichts.</small>
         </section>
         <section className="card">
           <h2>LohnTool-Schnittstelle</h2>
