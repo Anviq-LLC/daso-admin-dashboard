@@ -1,0 +1,17 @@
+{
+  "name": "daso-admin-dashboard",
+  "account_id": "de81ba1a2e7bae6a87821b398353b8dd",
+  "main": "src/worker/index.ts",
+  "compatibility_date": "2026-05-15",
+  "compatibility_flags": ["nodejs_compat"],
+  "preview_urls": false,
+  "observability": { "enabled": true },
+  "assets": { "directory": "dist", "binding": "ASSETS", "not_found_handling": "single-page-application", "run_worker_first": true },
+  "triggers": { "crons": ["*/15 * * * *"] },
+  "r2_buckets": [{ "binding": "BUCKET", "bucket_name": "daso-admin-dashboard-files" }],
+  "d1_databases": [
+    { "binding": "DB", "database_name": "daso-admin-dashboard", "database_id": "74796d95-5ae7-4cdd-8a8b-ae14fe266968", "migrations_dir": "migrations" },
+    { "binding": "PLAN", "database_name": "daso-montageplanung", "database_id": "42f5d224-bb84-4fd2-a1f8-d6abfda88956" },
+    { "binding": "AUFMASS", "database_name": "daso-aufmass-eu", "database_id": "b7dcd995-d426-4809-bb1f-60ffe3d1513b" }
+  ]
+}

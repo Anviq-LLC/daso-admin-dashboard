@@ -1,0 +1,12 @@
+{
+  "name": "daso-data-api",
+  "account_id": "de81ba1a2e7bae6a87821b398353b8dd",
+  "main": "src/api/index.ts",
+  "compatibility_date": "2026-05-15",
+  "compatibility_flags": ["nodejs_compat"],
+  "preview_urls": false,
+  "observability": { "enabled": true },
+  "d1_databases": [
+    { "binding": "DB", "database_name": "daso-admin-dashboard", "database_id": "74796d95-5ae7-4cdd-8a8b-ae14fe266968" }
+  ]
+}

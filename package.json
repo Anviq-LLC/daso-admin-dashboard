@@ -1,0 +1,33 @@
+{
+  "name": "daso-admin-dashboard",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22.13.0"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "node --import tsx --test tests/*.test.ts",
+    "dev": "wrangler dev --local",
+    "build": "vite build",
+    "sync:aufmass": "node scripts/sync-aufmass.mjs",
+    "dev:api": "wrangler dev --local -c wrangler.api.jsonc"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.20261109.1",
+    "@types/node": "^26.6.6",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.7",
+    "wrangler": "^4.159.0",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.3.0"
+  },
+  "dependencies": {
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "read-excel-file": "^5.8.8"
+  }
+}
