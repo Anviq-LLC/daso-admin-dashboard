@@ -17,10 +17,11 @@ export async function refreshMonth(env: Env, month: string, reason = 'Neu berech
   const [y, m] = month.split('-').map(Number);
   const lo = addDays(first, -2) + 'T00:00:00Z', hi = new Date(Date.UTC(y, m, 3)).toISOString();
 
-  const [recs, res, ass, pun, aliasRows, oldEmp, oldSub] = await Promise.all([
+  const [recs, res, prj, ass, pun, aliasRows, oldEmp, oldSub] = await Promise.all([
     env.AUFMASS.prepare("SELECT id, kind, data FROM records WHERE kind = 'project' OR (kind = 'report' AND json_extract(data, '$.date') <= ? AND COALESCE(json_extract(data, '$.endDate'), json_extract(data, '$.date')) >= ?)")
       .bind(addDays(first, 110), addDays(first, -8)).all<SourceRecord>(),
     env.PLAN.prepare('SELECT id, name, role, kind, archived_at FROM resources').all<{ id: string; name: string; role: string; kind: string; archived_at: string | null }>(),
+    env.PLAN.prepare('SELECT id, name, project_number, address, archived_at FROM projects').all<{ id: string; name: string; project_number: string | null; address: string; archived_at: string | null }>(),
     env.PLAN.prepare('SELECT resource_id, project_id, day, assignment_type FROM assignments WHERE day >= ? AND day <= ?').bind(first, last).all<Assignment>(),
     env.PLAN.prepare('SELECT resource_id, project_id, started, ended, pause FROM punches WHERE started >= ? AND started <= ?').bind(lo, hi).all<Punch>(),
     env.DB.prepare('SELECT alias, canonical FROM sub_alias').all<{ alias: string; canonical: string }>(),
@@ -64,6 +65,7 @@ export async function refreshMonth(env: Env, month: string, reason = 'Neu berech
     ...absence.map((a) => db.prepare('INSERT INTO fact_absence VALUES (?,?,?,?,?)').bind(month, a.day, a.resourceId, a.kind, a.review ? 1 : 0)),
     ...x.warnings.map((w) => db.prepare('INSERT INTO ingest_warning VALUES (?,?)').bind(month, w)),
     ...res.results.map((r) => db.prepare('INSERT INTO dim_resource (id, name, role, kind, archived) VALUES (?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET name = excluded.name, role = excluded.role, kind = excluded.kind, archived = excluded.archived').bind(r.id, r.name, r.role, r.kind, r.archived_at ? 1 : 0)),
+    ...prj.results.map((p) => db.prepare('INSERT INTO dim_project (id, name, number, address, archived) VALUES (?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET name = excluded.name, number = excluded.number, address = excluded.address, archived = excluded.archived').bind(p.id, p.name, p.project_number || '', p.address || '', p.archived_at ? 1 : 0)),
     ...[...new Map(x.emp.map((r) => [r.resourceId, r.code])).entries()].map(([id, code]) => db.prepare('UPDATE dim_resource SET code = ? WHERE id = ?').bind(code, id)),
     db.prepare('INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value').bind('ingested:' + month, now),
     ...log,

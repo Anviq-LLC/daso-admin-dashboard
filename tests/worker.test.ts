@@ -13,6 +13,7 @@ function setup() {
   const DB = memoryD1(readFileSync(new URL('../migrations/0001_init.sql', import.meta.url), 'utf8'));
   const AUFMASS = memoryD1('CREATE TABLE records (id TEXT PRIMARY KEY, kind TEXT, project_id TEXT, data TEXT, updated_at TEXT)');
   const PLAN = memoryD1(`
+    CREATE TABLE projects (id TEXT, name TEXT, project_number TEXT, address TEXT, archived_at TEXT);
     CREATE TABLE resources (id TEXT, name TEXT, role TEXT, kind TEXT, archived_at TEXT);
     CREATE TABLE assignments (resource_id TEXT, project_id TEXT, day TEXT, assignment_type TEXT);
     CREATE TABLE punches (resource_id TEXT, project_id TEXT, started TEXT, ended TEXT, pause INTEGER);

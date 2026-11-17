@@ -7,6 +7,8 @@
   "preview_urls": false,
   "observability": { "enabled": true },
   "d1_databases": [
-    { "binding": "DB", "database_name": "daso-admin-dashboard", "database_id": "74796d95-5ae7-4cdd-8a8b-ae14fe266968" }
+    { "binding": "DB", "database_name": "daso-admin-dashboard", "database_id": "74796d95-5ae7-4cdd-8a8b-ae14fe266968" },
+    { "binding": "PLAN", "database_name": "daso-montageplanung", "database_id": "42f5d224-bb84-4fd2-a1f8-d6abfda88956" },
+    { "binding": "AUFMASS", "database_name": "daso-aufmass-eu", "database_id": "b7dcd995-d426-4809-bb1f-60ffe3d1513b" }
   ]
 }
