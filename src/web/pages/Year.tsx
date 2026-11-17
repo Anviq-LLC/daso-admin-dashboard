@@ -31,7 +31,7 @@ export function Year({ year }: { year: number }) {
       <div className="tiles" style={{ gridTemplateColumns: 'repeat(auto-fit,minmax(340px,1fr))' }}>
         <section className="card"><h2>Mitarbeiter-Ranking (real, 90 %)</h2><div className="scroll"><table><thead><tr><th>#</th><th>Name</th><th>Real</th><th>Ausgleich</th><th>Bewertung</th></tr></thead><tbody>
           {y.employees.map((e, i) => <tr key={e.id}><td>{i + 1}</td><td>{e.name}</td><td>{money(e.real)}</td><td>{money(e.fiction)}</td><td>{money(e.valuation)}</td></tr>)}</tbody></table></div></section>
-        <section className="card"><h2>Sub-Ranking</h2><div className="scroll"><table><thead><tr><th>#</th><th>Firma</th><th>Umsatz</th><th>Gewinn</th></tr></thead><tbody>
+        <section className="card"><h2>Sub-Ranking</h2><div className="scroll"><table><thead><tr><th>#</th><th>Nachunternehmer</th><th>Umsatz</th><th>Gewinn</th></tr></thead><tbody>
           {y.subs.map((s, i) => <tr key={s.firm}><td>{i + 1}</td><td>{s.firm}</td><td>{money(s.revenue)}</td><td>{money(s.profit)}</td></tr>)}</tbody></table></div></section>
         <section className="card"><h2>Projekte Top</h2><table><tbody>{y.projectsTop.map((p) => <tr key={p.id}><td>{p.label}</td><td>{money(p.before)}</td></tr>)}</tbody></table>
           <h2 style={{ marginTop: 12 }}>Projekte Flop</h2><table><tbody>{y.projectsFlop.map((p) => <tr key={p.id}><td>{p.label}</td><td className={p.before < 0 ? 'err' : ''}>{money(p.before)}</td></tr>)}</tbody></table>

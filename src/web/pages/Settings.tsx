@@ -67,8 +67,8 @@ export function Settings({ me, month }: { me: Me; month: string }) {
       <section className="card">
         <h2>Sub-Firmen zusammenführen</h2>
         <table><thead><tr><th>Schreibweise</th><th>zählt als</th></tr></thead><tbody>{aliases.map((a) => <tr key={a.alias}><td>{a.alias}</td><td>{a.canonical}</td></tr>)}</tbody></table>
-        {gf && <form className="row" onSubmit={addAlias} style={{ marginTop: 8 }}><label>Schreibweise<input name="alias" required /></label><label>Firma<input name="canonical" required /></label><button className="btn primary">Hinzufügen</button></form>}
-        <small className="muted">Im Aufmaß-Tool ist die Firma Freitext. Neue Zuordnungen wirken nach dem nächsten Aktualisieren des Monats.</small>
+        {gf && <form className="row" onSubmit={addAlias} style={{ marginTop: 8 }}><label>Schreibweise<input name="alias" required /></label><label>Nachunternehmer<input name="canonical" required /></label><button className="btn primary">Hinzufügen</button></form>}
+        <small className="muted">Im Aufmaß-Tool ist der Nachunternehmer Freitext. Neue Zuordnungen wirken nach dem nächsten Aktualisieren des Monats.</small>
       </section>
 
       {gf && <>

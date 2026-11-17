@@ -136,7 +136,7 @@ export function extract(
       }
     }
   }
-  for (const n of unknownFirms) out.warnings.push(`Firma "${n}" steht nicht in der Montageplanung. Bitte im Aufmaß den Namen aus der Einteilung wählen oder unter Einstellungen zuordnen.`);
+  for (const n of unknownFirms) out.warnings.push(`Nachunternehmer "${n}" steht nicht in der Montageplanung. Bitte im Aufmaß den Namen aus der Einteilung wählen oder unter Einstellungen zuordnen.`);
   for (const n of unlinked) out.warnings.push(`${n} ist im Aufmaßtool nicht mit der Montageplanung verknüpft.`);
   return out;
 }

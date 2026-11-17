@@ -56,7 +56,7 @@ export function Costs({ me, month, onChange }: { me: Me; month: string; onChange
 
       <section className="card">
         <h2>Einzelbuchungen im Monat</h2>
-        <div className="scroll"><table><thead><tr><th>Datum</th><th>Art</th><th>Projekt</th><th>Firma</th><th>Unterkategorie</th><th>Betrag</th><th>Beleg</th><th>Notiz</th><th></th></tr></thead><tbody>
+        <div className="scroll"><table><thead><tr><th>Datum</th><th>Art</th><th>Projekt</th><th>Nachunternehmer</th><th>Unterkategorie</th><th>Betrag</th><th>Beleg</th><th>Notiz</th><th></th></tr></thead><tbody>
           {entries.map((x) => <tr key={x.id}><td>{x.day}</td><td>{KIND[x.kind as keyof typeof KIND]}</td><td>{x.project_id || 'übergreifend'}</td><td>{x.firm}</td><td>{x.subcategory}</td><td>{money(x.cents)}</td><td>{x.doc_url ? <a href={x.doc_url} target="_blank" rel="noreferrer">Beleg</a> : ''}</td><td>{x.note}</td><td>{allowed && <button className="btn" onClick={() => del(x.id)}>Löschen</button>}</td></tr>)}
         </tbody></table></div>
         <small className="muted">Übergreifende Posten (ohne Projekt) gehen in die Gemeinkosten und werden proportional verteilt, nie mehreren Projekten voll zugerechnet. Hebebühnen sind keine feste Kostenart: unter Sonstiges mit freier Unterkategorie erfassen.</small>
@@ -64,7 +64,7 @@ export function Costs({ me, month, onChange }: { me: Me; month: string; onChange
           <label>Art<select name="kind">{Object.entries(KIND).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></label>
           <label>Datum<input name="day" type="date" required defaultValue={month + '-01'} /></label>
           <label>Projekt-ID (leer = übergreifend)<input name="projectId" /></label>
-          <label>Sub-Firma<input name="firm" /></label>
+          <label>Nachunternehmer<input name="firm" /></label>
           <label>Unterkategorie<input name="subcategory" /></label>
           <label>Betrag (EUR)<input name="amount" required inputMode="decimal" /></label>
           <label>Beleg (https)<input name="docUrl" type="url" /></label>
