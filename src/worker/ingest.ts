@@ -28,7 +28,8 @@ export async function refreshMonth(env: Env, month: string, reason = 'Neu berech
     env.DB.prepare('SELECT day, report_id, team, customer_cents, binding FROM fact_sub WHERE month = ?').bind(month).all<{ day: string; report_id: string; team: string; customer_cents: number; binding: number }>(),
   ]);
   const aliases = Object.fromEntries(aliasRows.results.map((a) => [a.alias, a.canonical]));
-  const x = extract(parseRecords(recs.results), month, { mode: s.approval, aliases });
+  const contractors = res.results.filter((r) => r.kind === 'contractor').map((r) => r.name);
+  const x = extract(parseRecords(recs.results), month, { mode: s.approval, aliases, contractors });
   const hours = hoursFacts(pun.results, month), absence = absenceFacts(ass.results, month);
 
   // change log: the effective (binding) amount per key before and after

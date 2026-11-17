@@ -3,6 +3,7 @@ import { berlinToday, monthReport, yearReport } from './data.ts';
 import { checkSettings, loadSettings, saveSettings } from './settings.ts';
 import { reconcileAll, refreshChanged, refreshMonth } from './ingest.ts';
 import { bucketOf, BUCKETS, DEFAULT_MAPPING, suggest, summarize, type Line } from '../calc/bwa.ts';
+import { resolveFirm } from '../calc/extract.ts';
 import { toCsv } from './export.ts';
 import { sha256Hex } from '../api/guard.ts';
 
@@ -23,6 +24,14 @@ const link = (v: unknown) => { const t = opt(v, 500); if (t && !/^https:\/\//i.t
 
 async function log(env: Env, who: Identity, action: string, detail = '') {
   await env.DB.prepare('INSERT INTO audit (id, at, actor, action, detail) VALUES (?,?,?,?,?)').bind(crypto.randomUUID(), new Date().toISOString(), who.email, action, detail).run();
+}
+
+// Only firm names from the planning tool are accepted.
+async function contractor(env: Env, name: string): Promise<string> {
+  const rows = await env.PLAN.prepare("SELECT name FROM resources WHERE kind = 'contractor'").all<{ name: string }>();
+  const hit = resolveFirm(name, rows.results.map((r) => r.name));
+  if (!hit) throw new HttpError(400, `"${name}" steht nicht in der Montageplanung. Erlaubt: ${rows.results.map((r) => r.name).join(', ')}.`);
+  return hit;
 }
 
 async function mappingRows(env: Env) {
@@ -120,6 +129,7 @@ async function route(request: Request, env: Env, url: URL): Promise<Response> {
     }
     const b = await body();
     const kind = b.kind;
+    if (opt(b.firm, 120)) b.firm = await contractor(env, String(b.firm));
     if (kind !== 'sub' && kind !== 'alex' && kind !== 'other') throw new HttpError(400, 'Ungültige Kostenart.');
     const id = crypto.randomUUID();
     await env.DB.prepare('INSERT INTO cost_entry (id, day, kind, project_id, firm, subcategory, cents, doc_url, note, created_by, created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?)')
@@ -139,7 +149,7 @@ async function route(request: Request, env: Env, url: URL): Promise<Response> {
     if (method === 'GET') return reply((await env.DB.prepare('SELECT alias, canonical FROM sub_alias ORDER BY canonical').all()).results);
     need(can.rules(who));
     const b = await body();
-    await env.DB.prepare('INSERT INTO sub_alias (alias, canonical) VALUES (?,?) ON CONFLICT(alias) DO UPDATE SET canonical = excluded.canonical').bind(text(b.alias, 120).toLowerCase().replace(/\s+/g, ' '), text(b.canonical, 120)).run();
+    await env.DB.prepare('INSERT INTO sub_alias (alias, canonical) VALUES (?,?) ON CONFLICT(alias) DO UPDATE SET canonical = excluded.canonical').bind(text(b.alias, 120).toLowerCase().replace(/\s+/g, ' '), await contractor(env, text(b.canonical, 120))).run();
     return reply({ ok: true });
   }
   if (p === '/api/roles') {
@@ -289,7 +299,7 @@ async function route(request: Request, env: Env, url: URL): Promise<Response> {
     if (what === 'employees') rows = [['Mitarbeiter', 'Kuerzel', 'Realer Umsatz 90%', 'Kundenumsatz', 'Fiktiver Ausgleich', 'Bewertungsumsatz', 'Samstag-Kennzahl 40%', 'Stunden', 'Abwesenheitstage'], ...r.employees.map((e) => [e.name, e.code, eur(e.real), eur(e.customer), eur(e.fiction), eur(e.valuation), eur(e.saturdayIndicator), (e.workMinutes / 60).toFixed(2).replace('.', ','), e.absenceDays])];
     else if (what === 'projects') rows = [['Projekt', 'Umsatz', 'Direkte Kosten', 'Gewinn vor Gemeinkosten', 'Gemeinkostenanteil', 'Gewinn nach Gemeinkosten'], ...r.projects.map((x) => [x.label, eur(x.revenue), eur(x.direct), eur(x.before), eur(x.overhead), eur(x.after)])];
     else if (what === 'subs') rows = [['Firma', 'Umsatz', 'Kosten', 'Gewinn', 'Personentage', 'Umsatz je Personentag'], ...r.subs.map((x) => [x.firm, eur(x.revenue), eur(x.cost), eur(x.profit), x.personDays, eur(x.perPersonDay)])];
-    else if (what === 'days') rows = [['Tag', 'Mitarbeiter', 'Subs', 'Gesamt', 'Koepfe', 'Umsatz je Kopf'], ...r.daily.map((d) => [d.day, eur(d.own), eur(d.sub), eur(d.total), d.heads, eur(d.perHead)])];
+    else if (what === 'days') rows = [['Tag', 'Mitarbeiter', 'Koepfe Mitarbeiter', 'je Kopf Mitarbeiter', 'Nachunternehmer', 'Koepfe Nachunternehmer', 'je Kopf Nachunternehmer', 'Summe'], ...r.daily.map((d) => [d.day, eur(d.own), d.ownHeads, eur(d.ownPerHead), eur(d.sub), d.subHeads, eur(d.subPerHead), eur(d.total)])];
     else throw new HttpError(400, 'Unbekannter Export.');
     return new Response(toCsv(rows), { headers: { 'Content-Type': 'text/csv; charset=utf-8', 'Content-Disposition': `attachment; filename="${what}-${m}.csv"`, ...SECURITY } });
   }

@@ -41,8 +41,28 @@ function dayReports(r: Report): Report[] {
 
 const norm = (s: string) => s.trim().toLowerCase().replace(/\s+/g, ' ');
 
+function distance(a: string, b: string): number {
+  let prev = Array.from({ length: b.length + 1 }, (_, i) => i);
+  for (let i = 1; i <= a.length; i++) {
+    const cur = [i];
+    for (let j = 1; j <= b.length; j++) cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+    prev = cur;
+  }
+  return prev[b.length];
+}
+
+// Canonical firm name: manual alias first, then the planning tool's contractor list (exact, else one unambiguous near match).
+export function resolveFirm(raw: string, contractors: string[] = [], aliases: Record<string, string> = {}): string | null {
+  const key = norm(raw);
+  if (aliases[key]) return aliases[key];
+  const exact = contractors.find((c) => norm(c) === key);
+  if (exact) return exact;
+  const near = contractors.filter((c) => distance(key, norm(c)) <= (key.length >= 10 ? 3 : 1));
+  return near.length === 1 ? near[0] : null;
+}
+
 export function extract(
-  data: Data, month: string, opts: { mode?: ApprovalMode; aliases?: Record<string, string> } = {},
+  data: Data, month: string, opts: { mode?: ApprovalMode; aliases?: Record<string, string>; contractors?: string[] } = {},
 ): Extract {
   const out: Extract = { emp: [], sub: [], warnings: [] };
   const mode = opts.mode ?? 'saved';
@@ -53,7 +73,13 @@ export function extract(
     planOf.set(e.id, e.planId);
     for (const old of e.legacyIds || []) planOf.set(old, e.planId);
   }
-  const firmName = (raw: string) => opts.aliases?.[norm(raw)] || raw.trim();
+  const unknownFirms = new Set<string>();
+  const firmName = (raw: string) => {
+    const hit = resolveFirm(raw, opts.contractors, opts.aliases);
+    if (hit) return hit;
+    if (opts.contractors) unknownFirms.add(raw.trim());
+    return raw.trim();
+  };
   const unlinked = new Set<string>();
 
   for (const report of data.reports) {
@@ -110,6 +136,7 @@ export function extract(
       }
     }
   }
+  for (const n of unknownFirms) out.warnings.push(`Firma "${n}" steht nicht in der Montageplanung. Bitte im Aufmaß den Namen aus der Einteilung wählen oder unter Einstellungen zuordnen.`);
   for (const n of unlinked) out.warnings.push(`${n} ist im Aufmaßtool nicht mit der Montageplanung verknüpft.`);
   return out;
 }

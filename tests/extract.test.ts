@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { extract, parseRecords } from '../src/calc/extract.ts';
+import { extract, parseRecords, resolveFirm } from '../src/calc/extract.ts';
 
 const project = { id: 'p1', planId: 'plan-p1', number: '100', name: 'Halle', factor: 0.9, employees: [{ id: 'e1', planId: 'r1', firstName: 'A', lastName: 'B', code: 'AB' }] };
 const line = (q: number, price = 10_000) => ({ id: 'l' + q, positionId: 'x', number: '1', description: 'x', unit: 'm', price, employeePrice: price * 0.9, quantity: q, remark: '' });
@@ -55,4 +55,12 @@ test('retroactive: a report dated in the past lands on its service day', () => {
   ]);
   assert.equal(extract(data, '2026-02').emp.length, 0);
   assert.equal(extract(data, '2026-01').emp[0].day, '2026-01-14');
+});
+
+test('firm spellings resolve to the planning tool name', () => {
+  const list = ['Rafal', 'Oleksii Kompanets', 'Lukas GyGy'];
+  assert.equal(resolveFirm('Olexi Kompanets', list), 'Oleksii Kompanets');
+  assert.equal(resolveFirm(' olexii  kompanets ', list), 'Oleksii Kompanets');
+  assert.equal(resolveFirm('Unbekannt GmbH', list), null);
+  assert.equal(resolveFirm('Rafał', list, { 'rafał': 'Rafal' }), 'Rafal');
 });
