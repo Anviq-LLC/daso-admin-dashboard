@@ -9,19 +9,20 @@ export function Overview({ d, month }: { d: MonthData; month: string }) {
   const [trace, setTrace] = useState<Trace | null>(null);
   const [changes, setChanges] = useState<any[] | null>(null);
   const f = d.forecast;
+  const subCost = d.subs.reduce((a, x) => a + x.cost, 0);
   const open = (day: string) => api<Trace>(`/api/trace?day=${day}`).then(setTrace);
   const warnings = [...d.warnings, ...d.ingestWarnings];
 
   return (
     <>
       <div className="tiles">
-        <div className="tile"><small>Gesamtumsatz (freigegeben)</small><strong>{money(d.revenue)}</strong><small>Mitarbeiter {money(d.ownRevenue)} · Subs {money(d.subRevenue)}</small></div>
-        <div className="tile"><small>Erwarteter Umsatz (Pipeline)</small><strong>{money(d.pipeline.total)}</strong><small>noch nicht verbindlich, nicht in der Summe</small></div>
-        <div className="tile"><small>Mitarbeiterumsatz 90 %</small><strong>{money(d.ownEmployeeValue)}</strong><small>Ansicht auf den Mitarbeiterumsatz, kein zusätzlicher Erlös</small></div>
+        <div className="tile"><small>Eigene Mitarbeiter: Umsatz (freigegeben)</small><strong>{money(d.ownRevenue)}</strong><small>Mitarbeiterumsatz 90 %: {money(d.ownEmployeeValue)} · Pipeline {money(d.pipeline.own)}</small></div>
+        <div className="tile"><small>Nachunternehmer: Umsatz (freigegeben)</small><strong>{money(d.subRevenue)}</strong><small>Kosten {money(subCost)} · Pipeline {money(d.pipeline.sub)}</small></div>
+        <div className="tile"><small>Summe beider Bereiche</small><strong>{money(d.revenue)}</strong><small>Mitarbeiter {money(d.ownRevenue)} + Nachunternehmer {money(d.subRevenue)}, ohne Doppelzählung</small></div>
         <div className="tile"><small>Tages-Soll</small><strong>{money(d.dayTarget)}</strong><small>{d.weekdays} Mo–Fr-Tage im Monat</small></div>
         <div className="tile"><small>Gemeinkosten</small><strong>{money(d.costs.overhead)}</strong><small>Fix {money(d.costs.fixedTotal)} · übergreifend {money(d.costs.central)}</small></div>
-        <div className="tile"><small>Gewinn (Schätzung)</small><strong>{d.profit === null ? 'ohne Berechtigung' : money(d.profit)}</strong><small>{d.profit === null ? 'Personalkosten nicht freigegeben' : 'inkl. geschätzter Personalkosten ' + money(d.costs.personnel)}</small></div>
-        {f && <div className="tile"><small>Prognose Monatsumsatz</small><strong>{money(f.forecast)}</strong><small>Ist {money(f.ist)} · Prognose, keine BWA</small></div>}
+        <div className="tile"><small>Gewinn gesamt (Schätzung)</small><strong>{d.profit === null ? 'ohne Berechtigung' : money(d.profit)}</strong><small>{d.profit === null ? 'Personalkosten nicht freigegeben' : 'inkl. geschätzter Personalkosten ' + money(d.costs.personnel)}</small></div>
+        {f && <div className="tile"><small>Prognose Monatsumsatz (Summe)</small><strong>{money(f.forecast)}</strong><small>Ist {money(f.ist)} · Prognose, keine BWA</small></div>}
         {d.costForecast !== null && <div className="tile"><small>Prognose Kosten</small><strong>{money(d.costForecast)}</strong><small>Fix voll, variabel nach Umsatz</small></div>}
       </div>
 
@@ -30,20 +31,21 @@ export function Overview({ d, month }: { d: MonthData; month: string }) {
       <section className="card">
         <h2>Umsatz je Tag</h2>
         <Bars bars={d.daily.map((x) => ({ label: x.day.slice(8), value: x.own, second: x.sub }))} line={d.dayTarget} />
-        <small className="muted">Violett: Mitarbeiter, orange: Subs, gestrichelt: Tages-Soll. Stand {d.dataDate}{d.lastIngest ? `, Daten zuletzt abgeglichen ${new Date(d.lastIngest).toLocaleString('de-DE')}` : ''}. Freigabe: {d.approval === 'saved' ? 'gespeichertes Aufmaß zählt' : 'Kundenfreigabe nötig'}.</small>
+        <small className="muted"><span style={{ color: 'var(--accent)' }}>■</span> Eigene Mitarbeiter, <span style={{ color: 'var(--amber)' }}>■</span> Nachunternehmer (gestapelt), gestrichelt: Tages-Soll. Stand {d.dataDate}{d.lastIngest ? `, Daten zuletzt abgeglichen ${new Date(d.lastIngest).toLocaleString('de-DE')}` : ''}. Freigabe: {d.approval === 'saved' ? 'gespeichertes Aufmaß zählt' : 'Kundenfreigabe nötig'}.</small>
       </section>
 
       {f && <section className="card"><h2>Annahmen der Prognose</h2><ul>{f.assumptions.map((a, i) => <li key={i}>{a}</li>)}<li>Kostenprognose: Fixkosten voll, variable Kosten im Verhältnis zum prognostizierten Umsatz.</li></ul></section>}
 
       <section className="card">
-        <div className="row"><h2>Tage</h2><span className="spacer" /><button className="btn" onClick={() => download(`/api/export?what=days&month=${month}`)}>CSV</button></div>
+        <div className="row"><h2>Tage: Mitarbeiter und Nachunternehmer getrennt</h2><span className="spacer" /><button className="btn" onClick={() => download(`/api/export?what=days&month=${month}`)}>CSV</button></div>
         <div className="scroll"><table>
-          <thead><tr><th>Tag</th><th>Mitarbeiter</th><th>Subs</th><th>Gesamt</th><th>Köpfe</th><th>Umsatz/Kopf</th><th>Soll-Ist je Kopf</th></tr></thead>
+          <thead><tr><th>Tag</th><th>Mitarbeiter</th><th>Köpfe</th><th>je Kopf</th><th>Nachunternehmer</th><th>Köpfe</th><th>je Kopf</th><th>Summe</th></tr></thead>
           <tbody>{d.daily.filter((x) => x.total || x.heads).map((x) => (
             <tr key={x.day} className="click" onClick={() => open(x.day)}>
-              <td>{dayLabel(x.day)}</td><td>{money(x.own)}</td><td>{money(x.sub)}</td><td>{money(x.total)}</td><td>{x.heads}</td>
-              <td>{x.perHead === null ? 'keine Berechnung' : money(x.perHead)}</td>
-              <td className={x.perHead !== null && x.target !== null ? (x.perHead >= x.target ? 'ok' : 'err') : ''}>{x.perHead !== null && x.target !== null ? money(x.perHead - x.target) : '–'}</td>
+              <td>{dayLabel(x.day)}</td>
+              <td>{money(x.own)}</td><td>{x.ownHeads}</td><td className={x.ownPerHead !== null && x.target !== null ? (x.ownPerHead >= x.target ? 'ok' : 'err') : ''}>{x.ownPerHead === null ? 'keine Berechnung' : money(x.ownPerHead)}</td>
+              <td>{money(x.sub)}</td><td>{x.subHeads}</td><td>{x.subPerHead === null ? 'keine Berechnung' : money(x.subPerHead)}</td>
+              <td>{money(x.total)}</td>
             </tr>))}</tbody>
         </table></div>
       </section>

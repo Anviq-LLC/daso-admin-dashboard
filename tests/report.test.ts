@@ -97,3 +97,13 @@ test('year forecast mean ignores months without data', () => {
   const y = forecastYear(2026, '2026-03-10', { '2026-02': 300 }, 500, new Set(['2026-02']));
   assert.equal(y.points.find((p) => p.month === '2026-04')!.revenue, 400);
 });
+
+test('own and sub head counts and per-head figures are kept apart', () => {
+  const r = buildMonth(base({
+    emp: [empRow('2026-03-10', 'p', 100_000)],
+    sub: [{ day: '2026-03-10', projectId: 'p', label: 'p', firm: 'F', team: 'T', reportId: 's', customer: 400_000, cost: null, heads: 4, minutes: null, binding: true, estimated: false }],
+  }));
+  const d = r.daily.find((x) => x.day === '2026-03-10')!;
+  assert.deepEqual([d.ownHeads, d.subHeads, d.ownPerHead, d.subPerHead], [1, 4, 100_000, 100_000]);
+  assert.equal(d.total, 500_000);
+});

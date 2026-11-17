@@ -41,18 +41,26 @@ export function App() {
 
   return (
     <>
-      <header>
-        <img src="/daso-logo.png" alt="DaSO" />
-        <nav>{TABS.map((t) => <button key={t} className={t === tab ? 'on' : ''} onClick={() => setTab(t)}>{t}</button>)}</nav>
-        <span className="spacer" />
-        {month && <>
-          <button className="btn" onClick={() => setMonth(shiftMonth(month, -1))} aria-label="Vormonat">‹</button>
-          <input type="month" value={month} onChange={(e) => e.target.value && setMonth(e.target.value)} aria-label="Monat" />
-          <button className="btn" onClick={() => setMonth(shiftMonth(month, 1))} aria-label="Folgemonat">›</button>
-        </>}
-        {canWrite && <button className="btn" onClick={refresh} disabled={busy || !month}>{busy ? 'Aktualisiere…' : 'Aktualisieren'}</button>}
+      <header className="bar">
+        <a className="brand" href="/">
+          <img src="/daso-logo.png" alt="DaSO" />
+          <div><strong>DaSO Dashboard</strong><span>Umsatz, Personal und Kosten</span></div>
+        </a>
+        <nav>{TABS.map((t) => <button key={t} className={'tab' + (t === tab ? ' on' : '')} onClick={() => setTab(t)}>{t}</button>)}</nav>
+        {me && <div className="who">{me.email}<br />{{ gf: 'Geschäftsführung', buchhaltung: 'Buchhaltung', viewer: 'Lesezugriff' }[me.role]}</div>}
       </header>
       <main>
+        <h1>{tab}</h1>
+        {month && tab !== 'Einstellungen' && (
+          <div className="toolbar">
+            <button onClick={() => setMonth(shiftMonth(month, -1))} aria-label="Vormonat">‹</button>
+            <input type="month" value={month} onChange={(e) => e.target.value && setMonth(e.target.value)} aria-label="Monat" />
+            <button onClick={() => setMonth(shiftMonth(month, 1))} aria-label="Folgemonat">›</button>
+            <span className="muted">{monthLabel(month)}</span>
+            <span className="spacer" />
+            {canWrite && tab !== 'BWA/SuSa' && <button onClick={refresh} disabled={busy}>{busy ? 'Aktualisiere…' : 'Daten aktualisieren'}</button>}
+          </div>
+        )}
         {error && <div className="warn err">{error}</div>}
         {!data && !error && month && needsMonth && <div className="card">Lade {monthLabel(month)}…</div>}
         {tab === 'Übersicht' && data && <Overview d={data} month={month} />}

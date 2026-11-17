@@ -60,8 +60,12 @@ export function buildMonth(i: MonthInput) {
   const daily = days.map((d) => {
     const own = sum(ownB.filter((r) => r.day === d).map((r) => r.customer));
     const sb = sum(subB.filter((r) => r.day === d).map((r) => r.customer));
-    const heads = (ownHeads.get(d)?.size || 0) + sum([...(subHeads.get(d)?.values() || [])]);
-    return { day: d, own, sub: sb, total: own + sb, heads, perHead: perHead(own + sb, heads), target: isWeekday(d) ? dayTarget : null };
+    const oh = ownHeads.get(d)?.size || 0, sh = sum([...(subHeads.get(d)?.values() || [])]);
+    const heads = oh + sh;
+    return {
+      day: d, own, sub: sb, total: own + sb, heads, perHead: perHead(own + sb, heads),
+      ownHeads: oh, subHeads: sh, ownPerHead: perHead(own, oh), subPerHead: perHead(sb, sh), target: isWeekday(d) ? dayTarget : null,
+    };
   });
 
   // absence credit: one per person and day, Mon-Fri only, holidays count; days with parallel revenue or hours need a decision

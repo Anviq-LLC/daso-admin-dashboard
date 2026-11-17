@@ -56,14 +56,14 @@ export default {
       if (url.pathname === '/api/summary') {
         return json({
           month, approval: r.approval, dataDate: r.dataDate,
-          revenueEur: eur(r.revenue), ownRevenueEur: eur(r.ownRevenue), subRevenueEur: eur(r.subRevenue), pipelineEur: eur(r.pipeline.total),
+          ownRevenueEur: eur(r.ownRevenue), subRevenueEur: eur(r.subRevenue), sumRevenueEur: eur(r.revenue), ownPipelineEur: eur(r.pipeline.own), subPipelineEur: eur(r.pipeline.sub),
           overheadEur: eur(r.costs.overhead), forecastEur: r.forecast ? eur(r.forecast.forecast) : null,
           note: 'Umsatz = Kundenumsatz netto zum Leistungsdatum. Prognose ist keine BWA.',
         });
       }
-      if (url.pathname === '/api/revenue') return json(r.daily.map((d) => ({ day: d.day, ownEur: eur(d.own), subEur: eur(d.sub), totalEur: eur(d.total), heads: d.heads, perHeadEur: eur(d.perHead) })));
+      if (url.pathname === '/api/revenue') return json(r.daily.map((d) => ({ day: d.day, ownEur: eur(d.own), subEur: eur(d.sub), totalEur: eur(d.total), ownHeads: d.ownHeads, ownPerHeadEur: eur(d.ownPerHead), subHeads: d.subHeads, subPerHeadEur: eur(d.subPerHead) })));
       if (url.pathname === '/api/subs') return json(r.subs.map((s) => ({ firm: s.firm, revenueEur: eur(s.revenue), costEur: eur(s.cost), profitEur: eur(s.profit), personDays: s.personDays, perPersonDayEur: eur(s.perPersonDay) })));
-      return json(r.projects.map((p) => ({ project: p.label, revenueEur: eur(p.revenue), subCostEur: eur(p.subCost), profitBeforeOverheadEur: eur(p.revenue - p.subCost - p.other), overheadShareEur: eur(p.overhead) })));
+      return json(r.projects.map((p) => ({ project: p.label, ownRevenueEur: eur(p.ownRevenue), subRevenueEur: eur(p.subRevenue), sumRevenueEur: eur(p.revenue), subCostEur: eur(p.subCost), profitBeforeOverheadEur: eur(p.revenue - p.subCost - p.other), overheadShareEur: eur(p.overhead) })));
     } catch (e) {
       return json({ error: (e as Error).message }, 400);
     }

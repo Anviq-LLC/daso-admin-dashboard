@@ -13,8 +13,10 @@ export function Year({ year }: { year: number }) {
   return (
     <>
       <div className="tiles">
-        <div className="tile"><small>Ist-Umsatz {year}</small><strong>{money(y.totals.revenue)}</strong></div>
-        <div className="tile"><small>Jahresprognose</small><strong>{money(y.forecast.total)}</strong><small>{y.forecast.note}</small></div>
+        <div className="tile"><small>Eigene Mitarbeiter {year}</small><strong>{money(y.months.reduce((a, m) => a + m.own, 0))}</strong></div>
+        <div className="tile"><small>Nachunternehmer {year}</small><strong>{money(y.months.reduce((a, m) => a + m.sub, 0))}</strong></div>
+        <div className="tile"><small>Summe {year}</small><strong>{money(y.totals.revenue)}</strong></div>
+        <div className="tile"><small>Jahresprognose (Summe)</small><strong>{money(y.forecast.total)}</strong><small>{y.forecast.note}</small></div>
         <div className="tile"><small>Gewinn Ist (Schätzung)</small><strong>{y.totals.profit === null ? 'ohne Berechtigung' : money(y.totals.profit)}</strong></div>
       </div>
       <section className="card">
