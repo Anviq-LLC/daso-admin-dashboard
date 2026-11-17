@@ -18,7 +18,8 @@ const spec = (origin: string) => ({
   paths: {
     '/api/summary': { get: { operationId: 'summary', summary: 'Monatsübersicht', parameters: [monthParam], responses: { 200: { description: 'ok' } } } },
     '/api/revenue': { get: { operationId: 'revenue', summary: 'Umsatz je Tag', parameters: [monthParam], responses: { 200: { description: 'ok' } } } },
-    '/api/subs': { get: { operationId: 'subs', summary: 'Nachunternehmer je Firma', parameters: [monthParam], responses: { 200: { description: 'ok' } } } },
+    '/api/subs': { get: { operationId: 'subs', summary: 'Nachunternehmer mit Umsatz, Kosten und Gewinn', parameters: [monthParam], responses: { 200: { description: 'ok' } } } },
+    '/api/sub-teams': { get: { operationId: 'subTeams', summary: 'Nachunternehmer-Teams je Tag und Projekt mit Umsatz, Kosten, Personen und Stunden', parameters: [monthParam], responses: { 200: { description: 'ok' } } } },
     '/api/projects': { get: { operationId: 'projects', summary: 'Projekte mit Umsatz und Gewinn', parameters: [monthParam], responses: { 200: { description: 'ok' } } } },
     '/api/query': { post: { operationId: 'query', summary: 'SELECT auf v_revenue_day, v_sub_day, v_project_day', requestBody: { required: true, content: { 'application/json': { schema: { type: 'object', required: ['sql'], properties: { sql: { type: 'string' } } } } } }, responses: { 200: { description: 'ok' } } } },
   },
@@ -50,7 +51,7 @@ export default {
         return json((await db.prepare(sql).all()).results);
       }
       if (request.method !== 'GET') return json({ error: 'Methode nicht erlaubt.' }, 405);
-      if (!['/api/summary', '/api/revenue', '/api/subs', '/api/projects'].includes(url.pathname)) return json({ error: 'Nicht gefunden.' }, 404);
+      if (!['/api/summary', '/api/revenue', '/api/subs', '/api/sub-teams', '/api/projects'].includes(url.pathname)) return json({ error: 'Nicht gefunden.' }, 404);
       if (!MONTH.test(month)) return json({ error: 'month=YYYY-MM erforderlich.' }, 400);
       const r = await monthReport(full, NOBODY, month);
       if (url.pathname === '/api/summary') {
@@ -62,7 +63,8 @@ export default {
         });
       }
       if (url.pathname === '/api/revenue') return json(r.daily.map((d) => ({ day: d.day, ownEur: eur(d.own), subEur: eur(d.sub), totalEur: eur(d.total), ownHeads: d.ownHeads, ownPerHeadEur: eur(d.ownPerHead), subHeads: d.subHeads, subPerHeadEur: eur(d.subPerHead) })));
-      if (url.pathname === '/api/subs') return json(r.subs.map((s) => ({ firm: s.firm, revenueEur: eur(s.revenue), costEur: eur(s.cost), profitEur: eur(s.profit), personDays: s.personDays, perPersonDayEur: eur(s.perPersonDay) })));
+      if (url.pathname === '/api/subs') return json(r.subs.map((s) => ({ subcontractor: s.firm, revenueEur: eur(s.revenue), costEur: eur(s.cost), profitEur: eur(s.profit), personDays: s.personDays, hours: s.hours, perPersonDayEur: eur(s.perPersonDay) })));
+      if (url.pathname === '/api/sub-teams') return json(r.subDays.map((d) => ({ subcontractor: d.firm, team: d.team, project: d.project, day: d.day, revenueEur: eur(d.revenue), costEur: eur(d.cost), persons: d.heads, hours: d.hours, perPersonEur: eur(d.perHead), estimated: d.estimated })));
       return json(r.projects.map((p) => ({ project: p.label, ownRevenueEur: eur(p.ownRevenue), subRevenueEur: eur(p.subRevenue), sumRevenueEur: eur(p.revenue), subCostEur: eur(p.subCost), profitBeforeOverheadEur: eur(p.revenue - p.subCost - p.other), overheadShareEur: eur(p.overhead) })));
     } catch (e) {
       return json({ error: (e as Error).message }, 400);

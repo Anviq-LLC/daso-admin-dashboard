@@ -166,6 +166,7 @@ export function buildMonth(i: MonthInput) {
   }
   if (projects.some((p) => p.subCostMissing)) warnings.push('Sub-Kosten unvollständig (Stunden fehlen im Aufmaß): nicht als 0 gerechnet.');
 
+  const hoursOf = (rows: SubRow[]) => (rows.some((r) => r.minutes !== null) ? Math.round(sum(rows.map((r) => r.minutes ?? 0)) / 6) / 10 : null);
   // subs by firm
   const firms = new Map<string, SubRow[]>();
   for (const r of subB) (firms.get(r.firm) || firms.set(r.firm, []).get(r.firm)!).push(r);
@@ -174,13 +175,13 @@ export function buildMonth(i: MonthInput) {
     const revenue = sum(rows.map((r) => r.customer));
     const projs = [...new Set(rows.map((r) => r.projectId))];
     const cost = sum(projs.map((id) => projects.find((p) => p.id === id)?.subCost ?? 0));
-    return { firm, revenue, cost, profit: revenue - cost, personDays, perPersonDay: perHead(revenue, personDays), days: new Set(rows.map((r) => r.day)).size, projects: projs.length };
+    return { firm, revenue, cost, profit: revenue - cost, personDays, perPersonDay: perHead(revenue, personDays), days: new Set(rows.map((r) => r.day)).size, projects: projs.length, hours: hoursOf(rows) };
   }).sort((a, b) => b.revenue - a.revenue);
 
   const subDays = [...new Map(subB.map((r) => [`${r.firm}|${r.projectId}|${r.team}|${r.day}`, r])).keys()].map((k) => {
     const rows = subB.filter((r) => `${r.firm}|${r.projectId}|${r.team}|${r.day}` === k);
     const r0 = rows[0];
-    return { firm: r0.firm, projectId: r0.projectId, project: r0.label, team: r0.team, day: r0.day, revenue: sum(rows.map((r) => r.customer)), cost: rows.some((r) => r.cost === null) ? null : sum(rows.map((r) => r.cost ?? 0)), heads: Math.max(...rows.map((r) => r.heads || 0)) || null, perHead: perHead(sum(rows.map((r) => r.customer)), Math.max(...rows.map((r) => r.heads || 0)) || null), estimated: rows.some((r) => r.estimated) };
+    return { firm: r0.firm, projectId: r0.projectId, project: r0.label, team: r0.team, day: r0.day, revenue: sum(rows.map((r) => r.customer)), cost: rows.some((r) => r.cost === null) ? null : sum(rows.map((r) => r.cost ?? 0)), heads: Math.max(...rows.map((r) => r.heads || 0)) || null, perHead: perHead(sum(rows.map((r) => r.customer)), Math.max(...rows.map((r) => r.heads || 0)) || null), hours: hoursOf(rows), estimated: rows.some((r) => r.estimated) };
   }).sort((a, b) => a.firm.localeCompare(b.firm) || a.day.localeCompare(b.day));
   const direct = sum(projects.map((p) => p.subCost + p.other));
   const revenue = ownRev + subRev;
